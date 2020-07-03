@@ -2,8 +2,12 @@ import 'package:device_calendar/device_calendar.dart';
 import 'package:device_calendar/src/common/error_codes.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:timezone/timezone.dart';
 
 void main() {
+
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final channel =
       const MethodChannel('plugins.builttoroam.com/device_calendar');
   var deviceCalendarPlugin = DeviceCalendarPlugin();
@@ -65,7 +69,7 @@ void main() {
         await deviceCalendarPlugin.retrieveEvents(calendarId, params);
     expect(result.isSuccess, false);
     expect(result.errors.length, greaterThan(0));
-    expect(result.errors[0], contains(ErrorCodes.invalidArguments.toString()));
+    expect(result.errors[0].errorCode, equals(ErrorCodes.invalidArguments));
   });
 
   test('DeleteEvent_CalendarId_IsRequired', () async {
@@ -75,7 +79,7 @@ void main() {
     final result = await deviceCalendarPlugin.deleteEvent(calendarId, eventId);
     expect(result.isSuccess, false);
     expect(result.errors.length, greaterThan(0));
-    expect(result.errors[0], contains(ErrorCodes.invalidArguments.toString()));
+    expect(result.errors[0].errorCode, equals(ErrorCodes.invalidArguments));
   });
 
   test('DeleteEvent_EventId_IsRequired', () async {
@@ -85,7 +89,7 @@ void main() {
     final result = await deviceCalendarPlugin.deleteEvent(calendarId, eventId);
     expect(result.isSuccess, false);
     expect(result.errors.length, greaterThan(0));
-    expect(result.errors[0], contains(ErrorCodes.invalidArguments.toString()));
+    expect(result.errors[0].errorCode, equals(ErrorCodes.invalidArguments));
   });
 
   test('DeleteEvent_PassesArguments_Correctly', () async {
@@ -108,7 +112,7 @@ void main() {
     final result = await deviceCalendarPlugin.createOrUpdateEvent(event);
     expect(result.isSuccess, false);
     expect(result.errors, isNotEmpty);
-    expect(result.errors[0], contains(ErrorCodes.invalidArguments.toString()));
+    expect(result.errors[0].errorCode, equals(ErrorCodes.invalidArguments));
   });
 
   test('CreateEvent_Returns_Successfully', () async {
@@ -120,7 +124,7 @@ void main() {
     final fakeCalendarId = 'fakeCalendarId';
     final event = Event(fakeCalendarId);
     event.title = 'fakeEventTitle';
-    event.start = DateTime.now();
+    event.start = TZDateTime.now(local);
     event.end = event.start.add(Duration(hours: 1));
 
     final result = await deviceCalendarPlugin.createOrUpdateEvent(event);
@@ -145,7 +149,7 @@ void main() {
     final event = Event(fakeCalendarId);
     event.eventId = 'fakeEventId';
     event.title = 'fakeEventTitle';
-    event.start = DateTime.now();
+    event.start = TZDateTime.now(local);
     event.end = event.start.add(Duration(hours: 1));
 
     final result = await deviceCalendarPlugin.createOrUpdateEvent(event);

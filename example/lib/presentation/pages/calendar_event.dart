@@ -51,9 +51,9 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
   int _interval;
   DateTime _recurrenceEndDate;
   RecurrenceFrequency _recurrenceFrequency = RecurrenceFrequency.Daily;
-  List<DayOfWeek> _daysOfWeek = List<DayOfWeek>();
+  List<DayOfWeek> _daysOfWeek = <DayOfWeek>[];
   int _dayOfMonth;
-  List<int> _validDaysOfMonth = List<int>();
+  final List<int> _validDaysOfMonth = <int>[];
   MonthOfYear _monthOfYear;
   WeekNumber _weekOfMonth;
   DayOfWeek _selectedDayOfWeek = DayOfWeek.Monday;
@@ -132,11 +132,11 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
 
   void printAttendeeDetails(Attendee attendee) {
     print(
-        'attendee name: ${attendee.name}, email address: ${attendee.emailAddress}, type: ${attendee.iosAttendeeDetails?.role?.enumToString}');
+        'attendee name: ${attendee.name}, email address: ${attendee.emailAddress}, type: ${attendee.role?.enumToString}');
     print(
-        'ios specifics - status: ${attendee.iosAttendeeDetails?.attendanceStatus}, type: ${attendee.iosAttendeeDetails?.role?.enumToString}');
+        'ios specifics - status: ${attendee.iosAttendeeDetails?.attendanceStatus}, type: ${attendee.iosAttendeeDetails?.attendanceStatus?.enumToString}');
     print(
-        'android specifics - status ${attendee.androidAttendeeDetails?.attendanceStatus}, type: ${attendee.androidAttendeeDetails?.role?.enumToString}');
+        'android specifics - status ${attendee.androidAttendeeDetails?.attendanceStatus}, type: ${attendee.androidAttendeeDetails?.attendanceStatus?.enumToString}');
   }
 
   @override
@@ -269,12 +269,12 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                         Padding(
                           padding: const EdgeInsets.all(10.0),
                           child: TextFormField(
-                            initialValue: _event.startTimeZone,
+                            initialValue: _event.start.location.name,
                             decoration: const InputDecoration(
                                 labelText: 'Start date time zone',
                                 hintText: 'Australia/Sydney'),
                             onSaved: (String value) {
-                              _event.startTimeZone = value;
+                              _event.updateStartLocation(value);
                             },
                           ),
                         ),
@@ -307,17 +307,11 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                       Padding(
                         padding: const EdgeInsets.all(10.0),
                         child: TextFormField(
-                          initialValue: Platform.isAndroid
-                              ? _event.endTimeZone
-                              : _event.startTimeZone,
+                          initialValue: _event.end.location.name,
                           decoration: InputDecoration(
-                              labelText: Platform.isAndroid
-                                  ? 'End date time zone'
-                                  : 'Start and end time zone',
+                              labelText:  'End date time zone',
                               hintText: 'Australia/Sydney'),
-                          onSaved: (String value) => Platform.isAndroid
-                              ? _event.endTimeZone = value
-                              : _event.startTimeZone = value,
+                          onSaved: (String value) => _event.updateEndLocation(value),
                         ),
                       ),
                     ],

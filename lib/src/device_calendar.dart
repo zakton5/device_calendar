@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
 import 'package:sprintf/sprintf.dart';
+import 'package:timezone/timezone.dart';
 
 import 'common/channel_constants.dart';
 import 'common/error_codes.dart';
@@ -14,6 +15,8 @@ import 'models/event.dart';
 import 'models/result.dart';
 import 'models/retrieve_events_params.dart';
 
+import 'package:timezone/data/latest.dart' as tz;
+
 /// Provides functionality for working with device calendar(s)
 class DeviceCalendarPlugin {
   static const MethodChannel channel =
@@ -22,6 +25,7 @@ class DeviceCalendarPlugin {
   static final DeviceCalendarPlugin _instance = DeviceCalendarPlugin.private();
 
   factory DeviceCalendarPlugin() {
+    tz.initializeTimeZones();
     return _instance;
   }
 
@@ -201,10 +205,10 @@ class DeviceCalendarPlugin {
       assertParameters: (result) {
         // Setting time to 0 for all day events
         if (event.allDay == true) {
-          event.start = DateTime(
+          event.start = TZDateTime.local(
               event.start.year, event.start.month, event.start.day, 0, 0, 0);
           event.end =
-              DateTime(event.end.year, event.end.month, event.end.day, 0, 0, 0);
+              TZDateTime.local(event.end.year, event.end.month, event.end.day, 0, 0, 0);
         }
 
         _assertParameter(
