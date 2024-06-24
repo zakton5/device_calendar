@@ -8,7 +8,7 @@ class RecurringEventDialog extends StatefulWidget {
   final VoidCallback _onLoadingStarted;
   final Function(bool) _onDeleteFinished;
 
-  RecurringEventDialog(this._deviceCalendarPlugin, this._calendarEvent,
+  const RecurringEventDialog(this._deviceCalendarPlugin, this._calendarEvent,
       this._onLoadingStarted, this._onDeleteFinished,
       {Key? key})
       : super(key: key);
@@ -38,7 +38,7 @@ class _RecurringEventDialogState extends State<RecurringEventDialog> {
   @override
   Widget build(BuildContext context) {
     return SimpleDialog(
-      title: Text('Are you sure you want to delete this event?'),
+      title: const Text('Are you sure you want to delete this event?'),
       children: <Widget>[
         SimpleDialogOption(
           onPressed: () async {
@@ -51,11 +51,12 @@ class _RecurringEventDialogState extends State<RecurringEventDialog> {
                     _calendarEvent.start?.millisecondsSinceEpoch,
                     _calendarEvent.end?.millisecondsSinceEpoch,
                     false);
-            if (_onDeleteFinished != null)
+            if (_onDeleteFinished != null) {
               _onDeleteFinished!(
                   deleteResult.isSuccess && deleteResult.data != null);
+            }
           },
-          child: Text('This instance only'),
+          child: const Text('This instance only'),
         ),
         SimpleDialogOption(
           onPressed: () async {
@@ -68,11 +69,12 @@ class _RecurringEventDialogState extends State<RecurringEventDialog> {
                     _calendarEvent.start?.millisecondsSinceEpoch,
                     _calendarEvent.end?.millisecondsSinceEpoch,
                     true);
-            if (_onDeleteFinished != null)
+            if (_onDeleteFinished != null) {
               _onDeleteFinished!(
                   deleteResult.isSuccess && deleteResult.data != null);
+            }
           },
-          child: Text('This and following instances'),
+          child: const Text('This and following instances'),
         ),
         SimpleDialogOption(
           onPressed: () async {
@@ -80,17 +82,18 @@ class _RecurringEventDialogState extends State<RecurringEventDialog> {
             if (_onLoadingStarted != null) _onLoadingStarted!();
             final deleteResult = await _deviceCalendarPlugin.deleteEvent(
                 _calendarEvent.calendarId, _calendarEvent.eventId);
-            if (_onDeleteFinished != null)
+            if (_onDeleteFinished != null) {
               _onDeleteFinished!(
                   deleteResult.isSuccess && deleteResult.data != null);
+            }
           },
-          child: Text('All instances'),
+          child: const Text('All instances'),
         ),
         SimpleDialogOption(
           onPressed: () {
             Navigator.of(context).pop(false);
           },
-          child: Text('Cancel'),
+          child: const Text('Cancel'),
         )
       ],
     );

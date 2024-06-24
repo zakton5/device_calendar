@@ -2,19 +2,18 @@ import 'package:device_calendar/device_calendar.dart';
 import 'package:device_calendar/src/common/error_codes.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:timezone/timezone.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final channel =
-      const MethodChannel('plugins.builttoroam.com/device_calendar');
+  const channel = MethodChannel('plugins.builttoroam.com/device_calendar');
   var deviceCalendarPlugin = DeviceCalendarPlugin();
 
   final log = <MethodCall>[];
 
   setUp(() {
-    channel.setMockMethodCallHandler((MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
       print('Calling channel method ${methodCall.method}');
       log.add(methodCall);
 
@@ -25,7 +24,8 @@ void main() {
   });
 
   test('HasPermissions_Returns_Successfully', () async {
-    channel.setMockMethodCallHandler((MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
       return true;
     });
 
@@ -36,7 +36,8 @@ void main() {
   });
 
   test('RequestPermissions_Returns_Successfully', () async {
-    channel.setMockMethodCallHandler((MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
       return true;
     });
 
@@ -47,9 +48,10 @@ void main() {
   });
 
   test('RetrieveCalendars_Returns_Successfully', () async {
-    final fakeCalendarName = 'fakeCalendarName';
-    channel.setMockMethodCallHandler((MethodCall methodCall) async {
-      return '[{\"id\":\"1\",\"isReadOnly\":false,\"name\":\"$fakeCalendarName\"}]';
+    const fakeCalendarName = 'fakeCalendarName';
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      return '[{"id":"1","isReadOnly":false,"name":"$fakeCalendarName"}]';
     });
 
     final result = await deviceCalendarPlugin.retrieveCalendars();
@@ -61,18 +63,19 @@ void main() {
   });
 
   test('RetrieveEvents_CalendarId_IsRequired', () async {
-    final String? calendarId = null;
-    final params = RetrieveEventsParams();
+    const String? calendarId = null;
+    const params = RetrieveEventsParams();
 
-    final result = await deviceCalendarPlugin.retrieveEvents(calendarId, params);
+    final result =
+        await deviceCalendarPlugin.retrieveEvents(calendarId, params);
     expect(result.isSuccess, false);
     expect(result.errors.length, greaterThan(0));
     expect(result.errors[0].errorCode, equals(ErrorCodes.invalidArguments));
   });
 
   test('DeleteEvent_CalendarId_IsRequired', () async {
-    final String? calendarId = null;
-    final eventId = 'fakeEventId';
+    const String? calendarId = null;
+    const eventId = 'fakeEventId';
 
     final result = await deviceCalendarPlugin.deleteEvent(calendarId, eventId);
     expect(result.isSuccess, false);
@@ -81,8 +84,8 @@ void main() {
   });
 
   test('DeleteEvent_EventId_IsRequired', () async {
-    final calendarId = 'fakeCalendarId';
-    final String? eventId = null;
+    const calendarId = 'fakeCalendarId';
+    const String? eventId = null;
 
     final result = await deviceCalendarPlugin.deleteEvent(calendarId, eventId);
     expect(result.isSuccess, false);
@@ -91,8 +94,8 @@ void main() {
   });
 
   test('DeleteEvent_PassesArguments_Correctly', () async {
-    final calendarId = 'fakeCalendarId';
-    final eventId = 'fakeEventId';
+    const calendarId = 'fakeCalendarId';
+    const eventId = 'fakeEventId';
 
     await deviceCalendarPlugin.deleteEvent(calendarId, eventId);
     expect(log, <Matcher>[
@@ -104,8 +107,8 @@ void main() {
   });
 
   test('CreateEvent_Arguments_Invalid', () async {
-    final String? fakeCalendarId = null;
-    final event = Event(fakeCalendarId, availability: Availability.Busy);
+    const String? fakeCalendarId = null;
+    final event = Event(fakeCalendarId);
 
     final result = await deviceCalendarPlugin.createOrUpdateEvent(event);
     expect(result!.isSuccess, false);
@@ -114,16 +117,17 @@ void main() {
   });
 
   test('CreateEvent_Returns_Successfully', () async {
-    final fakeNewEventId = 'fakeNewEventId';
-    channel.setMockMethodCallHandler((MethodCall methodCall) async {
+    const fakeNewEventId = 'fakeNewEventId';
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
       return fakeNewEventId;
     });
 
-    final fakeCalendarId = 'fakeCalendarId';
-    final event = Event(fakeCalendarId, availability: Availability.Busy);
+    const fakeCalendarId = 'fakeCalendarId';
+    final event = Event(fakeCalendarId);
     event.title = 'fakeEventTitle';
     event.start = TZDateTime.now(local);
-    event.end = event.start!.add(Duration(hours: 1));
+    event.end = event.start!.add(const Duration(hours: 1));
 
     final result = await deviceCalendarPlugin.createOrUpdateEvent(event);
     expect(result?.isSuccess, true);
@@ -133,8 +137,9 @@ void main() {
   });
 
   test('UpdateEvent_Returns_Successfully', () async {
-    final fakeNewEventId = 'fakeNewEventId';
-    channel.setMockMethodCallHandler((MethodCall methodCall) async {
+    const fakeNewEventId = 'fakeNewEventId';
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
       final arguments = methodCall.arguments as Map<dynamic, dynamic>;
       if (!arguments.containsKey('eventId') || arguments['eventId'] == null) {
         return null;
@@ -143,12 +148,12 @@ void main() {
       return fakeNewEventId;
     });
 
-    final fakeCalendarId = 'fakeCalendarId';
-    final event = Event(fakeCalendarId, availability: Availability.Busy);
+    const fakeCalendarId = 'fakeCalendarId';
+    final event = Event(fakeCalendarId);
     event.eventId = 'fakeEventId';
     event.title = 'fakeEventTitle';
     event.start = TZDateTime.now(local);
-    event.end = event.start!.add(Duration(hours: 1));
+    event.end = event.start!.add(const Duration(hours: 1));
 
     final result = await deviceCalendarPlugin.createOrUpdateEvent(event);
     expect(result?.isSuccess, true);
@@ -175,15 +180,66 @@ void main() {
     expect(newAttendee.androidAttendeeDetails, isNull);
   });
 
-  test('Event_Serialises_Correctly', () async {
-    final event = Event('calendarId',eventId: 'eventId',start: TZDateTime(
-      timeZoneDatabase.locations.entries.skip(20).first.value, 1980, 10,1,0,0,0), availability: Availability.Busy);
+  test('Event_Serializes_Correctly', () async {
+    final startTime = TZDateTime(
+        timeZoneDatabase.locations.entries.skip(20).first.value,
+        1980,
+        10,
+        1,
+        0,
+        0,
+        0);
+    final endTime = TZDateTime(
+        timeZoneDatabase.locations.entries.skip(21).first.value,
+        1980,
+        10,
+        2,
+        0,
+        0,
+        0);
+    final attendee = Attendee(
+        name: 'Test Attendee',
+        emailAddress: 'test@t.com',
+        role: AttendeeRole.Required,
+        isOrganiser: true);
+    final recurrence = RecurrenceRule(frequency: Frequency.daily);
+    final reminder = Reminder(minutes: 10);
+    var event = Event('calendarId',
+        eventId: 'eventId',
+        title: 'Test Event',
+        start: startTime,
+        location: 'Seattle, Washington',
+        url: Uri.dataFromString('http://www.example.com'),
+        end: endTime,
+        attendees: [attendee],
+        description: 'Test description',
+        recurrenceRule: recurrence,
+        reminders: [reminder],
+        availability: Availability.Busy,
+        status: EventStatus.Confirmed);
+
     final stringEvent = event.toJson();
     expect(stringEvent, isNotNull);
     final newEvent = Event.fromJson(stringEvent);
     expect(newEvent, isNotNull);
     expect(newEvent.calendarId, equals(event.calendarId));
     expect(newEvent.eventId, equals(event.eventId));
-    expect(newEvent.start, equals(event.start));
+    expect(newEvent.title, equals(event.title));
+    expect(newEvent.start!.millisecondsSinceEpoch,
+        equals(event.start!.millisecondsSinceEpoch));
+    expect(newEvent.end!.millisecondsSinceEpoch,
+        equals(event.end!.millisecondsSinceEpoch));
+    expect(newEvent.description, equals(event.description));
+    expect(newEvent.url, equals(event.url));
+    expect(newEvent.location, equals(event.location));
+    expect(newEvent.attendees, isNotNull);
+    expect(newEvent.attendees?.length, equals(1));
+    expect(newEvent.recurrenceRule, isNotNull);
+    expect(newEvent.recurrenceRule?.frequency,
+        equals(event.recurrenceRule?.frequency));
+    expect(newEvent.reminders, isNotNull);
+    expect(newEvent.reminders?.length, equals(1));
+    expect(newEvent.availability, equals(event.availability));
+    expect(newEvent.status, equals(event.status));
   });
 }

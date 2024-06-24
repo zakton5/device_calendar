@@ -23,7 +23,7 @@ class DateTimePicker extends StatelessWidget {
   final ValueChanged<TimeOfDay>? selectTime;
   final bool enableTime;
 
-  Future<Null> _selectDate(BuildContext context) async {
+  Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
         context: context,
         initialDate: selectedDate != null
@@ -31,11 +31,12 @@ class DateTimePicker extends StatelessWidget {
             : DateTime.now(),
         firstDate: DateTime(2015, 8),
         lastDate: DateTime(2101));
-    if (picked != null && picked != selectedDate && selectDate != null)
+    if (picked != null && picked != selectedDate && selectDate != null) {
       selectDate!(picked);
+    }
   }
 
-  Future<Null> _selectTime(BuildContext context) async {
+  Future<void> _selectTime(BuildContext context) async {
     if (selectedTime == null) return;
     final picked =
         await showTimePicker(context: context, initialTime: selectedTime!);

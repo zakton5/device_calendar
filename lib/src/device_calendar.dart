@@ -1,10 +1,10 @@
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:meta/meta.dart';
-import 'package:sprintf/sprintf.dart';
+import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart';
 
 import 'common/channel_constants.dart';
@@ -14,8 +14,6 @@ import 'models/calendar.dart';
 import 'models/event.dart';
 import 'models/result.dart';
 import 'models/retrieve_events_params.dart';
-
-import 'package:timezone/data/latest.dart' as tz;
 
 /// Provides functionality for working with device calendar(s)
 class DeviceCalendarPlugin {
@@ -81,42 +79,48 @@ class DeviceCalendarPlugin {
     String? calendarId,
     RetrieveEventsParams? retrieveEventsParams,
   ) async {
-    return _invokeChannelMethod(
-      ChannelConstants.methodNameRetrieveEvents,
-      assertParameters: (result) {
-        _validateCalendarIdParameter(
-          result,
-          calendarId,
-        );
+    return _invokeChannelMethod(ChannelConstants.methodNameRetrieveEvents,
+        assertParameters: (result) {
+          _validateCalendarIdParameter(
+            result,
+            calendarId,
+          );
 
-        _assertParameter(
-          result,
-          !((retrieveEventsParams?.eventIds?.isEmpty ?? true) &&
-              ((retrieveEventsParams?.startDate == null ||
-                      retrieveEventsParams?.endDate == null) ||
-                  (retrieveEventsParams?.startDate != null &&
-                      retrieveEventsParams?.endDate != null &&
-                      (retrieveEventsParams != null &&
-                          retrieveEventsParams.startDate!
-                              .isAfter(retrieveEventsParams.endDate!))))),
-          ErrorCodes.invalidArguments,
-          ErrorMessages.invalidRetrieveEventsParams,
-        );
-      },
-      arguments: () => <String, Object?>{
-        ChannelConstants.parameterNameCalendarId: calendarId,
-        ChannelConstants.parameterNameStartDate:
-            retrieveEventsParams?.startDate?.millisecondsSinceEpoch,
-        ChannelConstants.parameterNameEndDate:
-            retrieveEventsParams?.endDate?.millisecondsSinceEpoch,
-        ChannelConstants.parameterNameEventIds: retrieveEventsParams?.eventIds,
-      },
-      evaluateResponse: (rawData) => UnmodifiableListView(
+          _assertParameter(
+            result,
+            !((retrieveEventsParams?.eventIds?.isEmpty ?? true) &&
+                ((retrieveEventsParams?.startDate == null ||
+                        retrieveEventsParams?.endDate == null) ||
+                    (retrieveEventsParams?.startDate != null &&
+                        retrieveEventsParams?.endDate != null &&
+                        (retrieveEventsParams != null &&
+                            retrieveEventsParams.startDate!
+                                .isAfter(retrieveEventsParams.endDate!))))),
+            ErrorCodes.invalidArguments,
+            ErrorMessages.invalidRetrieveEventsParams,
+          );
+        },
+        arguments: () => <String, Object?>{
+              ChannelConstants.parameterNameCalendarId: calendarId,
+              ChannelConstants.parameterNameStartDate:
+                  retrieveEventsParams?.startDate?.millisecondsSinceEpoch,
+              ChannelConstants.parameterNameEndDate:
+                  retrieveEventsParams?.endDate?.millisecondsSinceEpoch,
+              ChannelConstants.parameterNameEventIds:
+                  retrieveEventsParams?.eventIds,
+            },
+        /*evaluateResponse: (rawData) => UnmodifiableListView(
         json
             .decode(rawData)
             .map<Event>((decodedEvent) => Event.fromJson(decodedEvent)),
-      ),
-    );
+      ),*/
+        evaluateResponse: (rawData) => UnmodifiableListView(
+              json.decode(rawData).map<Event>((decodedEvent) {
+                // debugPrint(
+                //     "JSON_RRULE: ${decodedEvent['recurrenceRule']}, ${(decodedEvent['recurrenceRule']['byday'])}");
+                return Event.fromJson(decodedEvent);
+              }),
+            ));
   }
 
   /// Deletes an event from a calendar. For a recurring event, this will delete all instances of it.\
@@ -212,14 +216,25 @@ class DeviceCalendarPlugin {
           if (event.start != null) {
             var dateStart = DateTime(event.start!.year, event.start!.month,
                 event.start!.day, 0, 0, 0);
-            event.start = TZDateTime.from(dateStart,
-                timeZoneDatabase.locations[event.start!.location.name]!);
+            // allDay events on Android need to be at midnight UTC
+            event.start = Platform.isAndroid
+                ? TZDateTime.utc(event.start!.year, event.start!.month,
+                    event.start!.day, 0, 0, 0)
+                : TZDateTime.from(dateStart,
+                    timeZoneDatabase.locations[event.start!.location.name]!);
           }
           if (event.end != null) {
             var dateEnd = DateTime(
                 event.end!.year, event.end!.month, event.end!.day, 0, 0, 0);
-            event.end = TZDateTime.from(
-                dateEnd, timeZoneDatabase.locations[event.end!.location.name]!);
+            // allDay events on Android need to be at midnight UTC on the
+            // day after the last day. For example, a 2-day allDay event on
+            // Jan 1 and 2, should be from Jan 1 00:00:00 to Jan 3 00:00:00
+            event.end = Platform.isAndroid
+                ? TZDateTime.utc(event.end!.year, event.end!.month,
+                        event.end!.day, 0, 0, 0)
+                    .add(const Duration(days: 1))
+                : TZDateTime.from(dateEnd,
+                    timeZoneDatabase.locations[event.end!.location.name]!);
           }
         }
 
@@ -310,6 +325,23 @@ class DeviceCalendarPlugin {
     );
   }
 
+  /// Displays a native iOS view [EKEventViewController]
+  /// https://developer.apple.com/documentation/eventkitui/ekeventviewcontroller
+  ///
+  /// Allows to change the event's attendance status
+  /// Works only on iOS
+  /// Returns after dismissing EKEventViewController's dialog
+  Future<Result<void>> showiOSEventModal(
+    String eventId,
+  ) {
+    return _invokeChannelMethod(
+      ChannelConstants.methodNameShowiOSEventModal,
+      arguments: () => <String, String>{
+        ChannelConstants.parameterNameEventId: eventId,
+      },
+    );
+  }
+
   Future<Result<T>> _invokeChannelMethod<T>(
     String channelMethodName, {
     Function(Result<T>)? assertParameters,
@@ -336,8 +368,15 @@ class DeviceCalendarPlugin {
       } else {
         result.data = rawData;
       }
-    } catch (e) {
-      _parsePlatformExceptionAndUpdateResult<T>(e as Exception?, result);
+    } catch (e, s) {
+      if (e is ArgumentError) {
+        debugPrint(
+            "INVOKE_CHANNEL_METHOD_ERROR! Name: ${e.name}, InvalidValue: ${e.invalidValue}, Message: ${e.message}, ${e.toString()}");
+      } else if (e is PlatformException) {
+        debugPrint('INVOKE_CHANNEL_METHOD_ERROR: $e\n$s');
+      } else {
+        _parsePlatformExceptionAndUpdateResult<T>(e as Exception?, result);
+      }
     }
 
     return result;
@@ -347,7 +386,7 @@ class DeviceCalendarPlugin {
       Exception? exception, Result<T> result) {
     if (exception == null) {
       result.errors.add(
-        ResultError(
+        const ResultError(
           ErrorCodes.unknown,
           ErrorMessages.unknownDeviceIssue,
         ),
@@ -355,22 +394,20 @@ class DeviceCalendarPlugin {
       return;
     }
 
-    print(exception);
+    debugPrint('$exception');
 
     if (exception is PlatformException) {
       result.errors.add(
         ResultError(
           ErrorCodes.platformSpecific,
-          sprintf(ErrorMessages.unknownDeviceExceptionTemplate,
-              [exception.code, exception.message]),
+          '${ErrorMessages.unknownDeviceExceptionTemplate}, Code: ${exception.code}, Exception: ${exception.message}',
         ),
       );
     } else {
       result.errors.add(
         ResultError(
           ErrorCodes.generic,
-          sprintf(ErrorMessages.unknownDeviceGenericExceptionTemplate,
-              [exception.toString()]),
+          '${ErrorMessages.unknownDeviceGenericExceptionTemplate} ${exception.toString}',
         ),
       );
     }
@@ -382,6 +419,9 @@ class DeviceCalendarPlugin {
     int errorCode,
     String errorMessage,
   ) {
+    if (result.data != null) {
+      debugPrint("RESULT of _assertParameter: ${result.data}");
+    }
     if (!predicate) {
       result.errors.add(
         ResultError(errorCode, errorMessage),

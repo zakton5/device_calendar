@@ -52,6 +52,13 @@ enum Availability {
   Unavailable,
 }
 
+enum EventStatus {
+  None,
+  Confirmed,
+  Canceled,
+  Tentative,
+}
+
 extension DayOfWeekExtension on DayOfWeek {
   static int _value(DayOfWeek val) {
     switch (val) {
@@ -79,6 +86,7 @@ extension DayOfWeekExtension on DayOfWeek {
   }
 
   int get value => _value(this);
+
   String get enumToString => _enumToString(this);
 }
 
@@ -115,6 +123,7 @@ extension DaysOfWeekGroupExtension on DayOfWeekGroup {
   }
 
   List<DayOfWeek> get getDays => _getDays(this);
+
   String get enumToString => _enumToString(this);
 }
 
@@ -155,6 +164,7 @@ extension MonthOfYearExtension on MonthOfYear {
   }
 
   int get value => _value(this);
+
   String get enumToString => _enumToString(this);
 }
 
@@ -181,6 +191,7 @@ extension WeekNumberExtension on WeekNumber {
   }
 
   int get value => _value(this);
+
   String get enumToString => _enumToString(this);
 }
 
@@ -255,7 +266,9 @@ extension IntExtensions on int {
   }
 
   DayOfWeek get getDayOfWeekEnumValue => _getDayOfWeekEnumValue(this);
+
   MonthOfYear get getMonthOfYearEnumValue => _getMonthOfYearEnumValue(this);
+
   WeekNumber get getWeekNumberEnumValue => _getWeekNumberEnumValue(this);
 }
 
@@ -278,6 +291,23 @@ extension AvailabilityExtensions on Availability {
         return 'TENTATIVE';
       case Availability.Unavailable:
         return 'UNAVAILABLE';
+    }
+  }
+
+  String get enumToString => _enumToString(this);
+}
+
+extension EventStatusExtensions on EventStatus {
+  String _enumToString(EventStatus enumValue) {
+    switch (enumValue) {
+      case EventStatus.Confirmed:
+        return 'CONFIRMED';
+      case EventStatus.Tentative:
+        return 'TENTATIVE';
+      case EventStatus.Canceled:
+        return 'CANCELED';
+      case EventStatus.None:
+        return 'NONE';
     }
   }
 
